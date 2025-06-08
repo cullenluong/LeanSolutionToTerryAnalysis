@@ -18,6 +18,7 @@ Note: at the end of this chapter, the `Chapter2.Nat` class will be deprecated in
 
 namespace Chapter2
 
+
 /-- Definition 2.2.1. (Addition of natural numbers). -/
 abbrev Nat.add (n m : Nat) : Nat := Nat.recurse (fun _ sum ↦ sum++) m n
 
@@ -62,7 +63,9 @@ lemma Nat.add_succ (n m:Nat) : n + (m++) = (n + m)++ := by
 
 /-- n++ = n + 1 (Why?) -/
 theorem Nat.succ_eq_add_one (n:Nat) : n++ = n + 1 := by
-  sorry
+  rw [show 1 = 0++ from rfl]
+  rw[add_succ]
+  rw[add_zero]
 
 /-- Proposition 2.2.4 (Addition is commutative) -/
 theorem Nat.add_comm (n m:Nat) : n + m = m + n := by
@@ -75,7 +78,14 @@ theorem Nat.add_comm (n m:Nat) : n + m = m + n := by
 
 /-- Proposition 2.2.5 (Addition is associative) / Exercise 2.2.1-/
 theorem Nat.add_assoc (a b c:Nat) : (a + b) + c = a + (b + c) := by
-  sorry
+  revert c
+  apply induction
+  · rw[add_zero,add_zero]
+  intro n h
+  rw [add_succ]
+  rw[add_succ]
+  rw[add_succ]
+  rw[h]
 
 /-- Proposition 2.2.6 (Cancellation law) -/
 theorem Nat.add_cancel_left (a b c:Nat) (habc: a + b = a + c) : b = c := by
@@ -130,9 +140,39 @@ theorem Nat.add_eq_zero (a b:Nat) (hab: a + b = 0) : a = 0 ∧ b = 0 := by
   have : (a + b).isPos := add_pos _ hb
   contradiction
 
+--Textbook
+--interesting induction proof
+-- we don't make use of the inducdtion axiomn in the inductive step, but it's still
+--necessary since it makes our inductive goal step symmetric and allows us to make
+--use of axiom 2.4 which states that if b++=a++ then b=a
 /-- Lemma 2.2.10 (unique predecessor) / Exercise 2.2.2 -/
 lemma Nat.uniq_succ_eq (a:Nat) (ha: a.isPos) : ∃! b, b++ = a := by
-  sorry
+  revert a
+  apply induction
+  · rw[ Nat.isPos ]
+    intro h
+    contradiction
+  intro a hd hp -- ⊢ ∃! b, b++ = a++ there exists a unique b such that b++ = a++ for all a
+  use a
+    -- our goal is that we want unique object b that exists
+    -- when we say use a , we're saying that we pressupose that unique object b= a
+
+  -- now goal changes to ⊢ (fun b ↦ b++ = a++) a ∧ ∀ (y : Nat),
+          --fun b then b++= a++ is simply lambda calculus
+          -- λ b, b++ = a+
+          -- For all natural numbers y  ,  if y is true that
+          -- for all natural nubmers y  that fulfills the lambda ocndition y is then equal to a
+          -- that is all possibilities is narrowed to a unique a
+
+
+        -- (fun b ↦ b++ = a++) y → y = a
+        -- before  we had there exists a unique b such that b++=a++
+        -- now have in a wordy form taht there an explicit a
+  constructor -- we split into two goals
+  · rfl
+  intro c hc
+  --c is some natural number, hc is c++ = a++
+  exact Nat.succ_cancel hc
 
 /-- Definition 2.2.11 (Ordering of the natural numbers) -/
 instance Nat.instLE : LE Nat where
@@ -144,7 +184,7 @@ instance Nat.instLT : LT Nat where
 
 lemma Nat.le_iff (n m:Nat) : n ≤ m ↔ ∃ a:Nat, m = n + a := by rfl
 
-lemma Nat.lt_iff (n m:Nat) : n < m ↔ (∃ a:Nat, m = n + a) ∧ n ≠ m := by rfl
+lemma Nat.li_iff (n m:Nat) : n < m ↔ (∃ a:Nat, m = n + a) ∧ n ≠ m := by rfl
 
 lemma Nat.ge_iff_le (n m:Nat) : n ≥ m ↔ m ≤ n := by rfl
 
@@ -153,7 +193,7 @@ lemma Nat.gt_iff_lt (n m:Nat) : n > m ↔ m < n := by rfl
 lemma Nat.le_of_lt {n m:Nat} (hnm: n < m) : n ≤ m := hnm.1
 
 lemma Nat.le_iff_lt_or_eq (n m:Nat) : n ≤ m ↔ n < m ∨ n = m := by
-  rw [Nat.le_iff, Nat.lt_iff]
+  rw [Nat.le_iff, Nat.li_iff]
   by_cases h : n = m
   . simp [h]
     use 0
@@ -161,33 +201,97 @@ lemma Nat.le_iff_lt_or_eq (n m:Nat) : n ≤ m ↔ n < m ∨ n = m := by
   simp [h]
 
 example : (8:Nat) > 5 := by
-  rw [Nat.gt_iff_lt, Nat.lt_iff]
+  rw [Nat.gt_iff_lt, Nat.li_iff]
   constructor
   . have : (8:Nat) = 5 + 3 := by rfl
     rw [this]
     use 3
   decide
 
+--Textbook
 theorem Nat.succ_gt (n:Nat) : n++ > n := by
-  sorry
+  constructor
+  use 1
+  rw[succ_eq_add_one]
+  rw[succ_eq_add_one]
+  nth_rewrite 1 [← add_zero n]
+  by_contra h
+  apply add_cancel_left at h
+  contradiction
+
 
 /-- Proposition 2.2.12 (Basic properties of order for natural numbers) / Exercise 2.2.3
-
+-- Proove reflexisivity,transitivity, and antisymmetrtric order,
 (a) (Order is reflexive). -/
 theorem Nat.ge_refl (a:Nat) : a ≥ a := by
-  sorry
+  use 0
+  symm
+  rw[add_zero]
 
 /-- (b) (Order is transitive) -/
 theorem Nat.ge_trans {a b c:Nat} (hab: a ≥ b) (hbc: b ≥ c) : a ≥ c := by
-  sorry
+  rw[ge_iff_le]
+  rw[ge_iff_le,le_iff] at hab
+  rw[ge_iff_le,le_iff] at hbc
+  rcases hab with ⟨k, rfl⟩      -- replaces `a` with `b + k`
+  rcases hbc with ⟨l, rfl⟩      -- replaces `b` with `c + l`
+
+  use l+k
+  exact add_assoc c l k
+
 
 /-- (c) (Order is anti-symmetric)  -/
 theorem Nat.ge_antisymm {a b:Nat} (hab: a ≥ b) (hba: b ≥ a) : a = b := by
-  sorry
+  rw[ge_iff_le,le_iff] at hab
+  rw[ge_iff_le,le_iff] at hba
+
+  rcases hab with ⟨k, rfl⟩
+
+  rcases hba with ⟨l, h⟩
+  nth_rewrite 1 [← add_zero b] at h
+  rw[add_assoc] at h
+
+  apply add_cancel_left at h
+  symm at h
+  apply add_eq_zero at h
+  rw[h.left]
+  rw[add_zero]
+
+
+
 
 /-- (d) (Addition preserves order)  -/
 theorem Nat.add_ge_add_right (a b c:Nat) : a ≥ b ↔ a + c ≥ b + c := by
-  sorry
+  constructor
+  intro h
+  rw[ge_iff_le,le_iff] at h
+  rw[ge_iff_le,le_iff]
+  rcases h with ⟨k,rfl ⟩
+  rw[add_assoc]
+  nth_rewrite 2 [add_comm]
+  --nth_rewrite 1 [← add_assoc]
+  rw[← add_assoc]
+  use k
+  intro h
+  rw[ge_iff_le,le_iff] at h
+  rw[ge_iff_le,le_iff]
+
+  rcases h with ⟨k,hk ⟩
+  use k
+
+  rw[← add_comm] at hk
+  nth_rewrite 1 [add_assoc] at hk
+
+  nth_rewrite 2 [← add_comm] at hk
+  rw[add_assoc] at hk
+
+  apply add_cancel_left at hk
+  rw[add_comm]
+  exact hk
+
+
+
+
 
 /-- (d) (Addition preserves order)  -/
 theorem Nat.add_ge_add_left (a b c:Nat) : a ≥ b ↔ c + a ≥ c + b := by
