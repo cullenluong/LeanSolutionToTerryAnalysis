@@ -142,7 +142,7 @@ theorem Nat.add_eq_zero (a b:Nat) (hab: a + b = 0) : a = 0 ∧ b = 0 := by
 
 --Textbook
 --interesting induction proof
--- we don't make use of the inducdtion axiomn in the inductive step, but it's still
+-- we don't make use of the induction axiomn in the inductive step, but it's still
 --necessary since it makes our inductive goal step symmetric and allows us to make
 --use of axiom 2.4 which states that if b++=a++ then b=a
 /-- Lemma 2.2.10 (unique predecessor) / Exercise 2.2.2 -/
@@ -304,13 +304,94 @@ theorem Nat.add_le_add_right (a b c:Nat) : a ≤ b ↔ a + c ≤ b + c := add_ge
 /-- (d) (Addition preserves order)  -/
 theorem Nat.add_le_add_left (a b c:Nat) : a ≤ b ↔ c + a ≤ c + b := add_ge_add_left _ _ _
 
+
+--This took way longer that I thought it would. Is there a simpler way to prove this?
 /-- (e) a < b iff a++ ≤ b. -/
 theorem Nat.lt_iff_succ_le (a b:Nat) : a < b ↔ a++ ≤ b := by
-  sorry
+  constructor
+  · intro h
+    rw[li_iff] at h
+    --rw[le_iff]
+    rcases h with ⟨h1,h2⟩
+    rcases h1 with  ⟨m,h3⟩
+
+    let h:m ≠ 0 := by
+      rw[h3] at h2
+      by_contra h3
+      · rw[h3] at h2
+        rw[add_zero]  at h2
+        contradiction
+
+    --use 0
+    rw[← isPos_iff] at h
+    apply uniq_succ_eq m at h
+    rcases h with ⟨m, ⟨hb, _uniq⟩⟩
+    subst hb
+    rw[add_succ] at h3
+    rw[← succ_add]  at h3
+    --rw[succ_eq_add_one] at h3
+    --rw[add_assoc]  at h3
+    have h3_exists : ∃ m, b = a++ + m :=
+  ⟨m, h3⟩
+
+
+    rw[← le_iff] at h3_exists
+    exact h3_exists
+  intro h
+  rw[le_iff] at h
+  rcases h with ⟨m,h2⟩
+  rw[li_iff]
+  --rw[succ_add] at h2
+  rw[succ_eq_add_one] at h2
+  let hr: a≠b :=by
+    by_contra h3
+    rw[h3] at h2
+    rw[add_assoc] at h2
+    nth_rewrite 1[← add_zero b] at h2
+    apply add_cancel_left at h2
+    contradiction
+
+  rw [add_assoc] at h2
+
+  let h2_exists : ∃ a_1,b=a+a_1  := by
+    use (1 + m)
+  exact And.intro h2_exists hr
+
+
+-- adding  a small lemma
+--lemma Nat.succ_pos {a : Nat}  : (a++).isPos :=by exact Nat.succ_ne a
+
 
 /-- (f) a < b if and only if b = a + d for positive d. -/
 theorem Nat.lt_iff_add_pos (a b:Nat) : a < b ↔ ∃ d:Nat, d.isPos ∧ b = a + d := by
-  sorry
+  constructor
+  · intro h
+    rw[lt_iff_succ_le] at h
+    rw[le_iff] at h
+    rw[succ_eq_add_one] at h
+    rcases h with ⟨n,h2⟩
+    rw[add_assoc] at h2
+    nth_rewrite 2 [add_comm]  at h2
+    rw[← succ_eq_add_one] at h2
+    use (n++)
+    let h3:  (n++).isPos  :=by exact Nat.succ_ne n
+    exact ⟨h3,h2⟩
+  · intro h
+    rcases h with ⟨n,⟨h2,h3⟩⟩
+    rw[isPos_iff] at h2
+    --let h3_exists:∃m, b = a+n:=⟨n,b⟩
+    rw[li_iff]
+    have h_exists : ∃ m, b = a + m :=by use n
+    have hnot: a≠ b:=by
+      symm at h3
+      by_contra h
+      rw[h] at h3
+      nth_rewrite 2 [← add_zero b] at h3
+      apply add_cancel_left at h3
+      contradiction
+    --exact ⟨h_exists,hnot⟩
+    tauto
+
 
 /-- If a < b then a ̸= b,-/
 theorem Nat.ne_of_lt (a b:Nat) : a < b → a ≠ b := by
